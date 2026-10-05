@@ -1,0 +1,37 @@
+# Node
+node_modules/
+dist/
+.env
+.env.local
+*.log
+
+# Java / Maven
+target/
+*.class
+*.jar
+*.war
+.mvn/
+!.mvn/wrapper/
+
+# Python / Lambda
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+lambda/.env
+
+# AWS credentials — never commit these
+.aws/
+aws-credentials
+*.pem
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
