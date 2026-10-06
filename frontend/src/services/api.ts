@@ -1,7 +1,16 @@
 import axios from 'axios';
+import { supabase } from '../lib/supabase';
 import type { Communication, CommunicationSource, PageResponse, TrendEntry } from '../types';
 
 const client = axios.create({ baseURL: '/api' });
+
+client.interceptors.request.use(async config => {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.access_token) {
+    config.headers.Authorization = `Bearer ${session.access_token}`;
+  }
+  return config;
+});
 
 export const api = {
   submitCommunication: (text: string, source: CommunicationSource) =>

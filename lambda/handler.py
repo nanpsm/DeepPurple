@@ -1,13 +1,20 @@
 import json
 import os
-from openai import OpenAI
+import google.generativeai as genai
 
 
 def handler(event, context):
     text = event.get("text", "")
     source = event.get("source", "UNKNOWN").lower().replace("_", " ")
 
-    client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+    genai.configure(api_key=os.environ["GEMINI_API_KEY"])
+    model = genai.GenerativeModel(
+        model_name="gemini-1.5-flash",
+        generation_config=genai.GenerationConfig(
+            response_mime_type="application/json",
+            temperature=0.2,
+        ),
+    )
 
     prompt = (
         f"Analyze the following {source} text for emotions and sentiment.\n"
@@ -21,23 +28,8 @@ def handler(event, context):
         f"Text:\n{text}"
     )
 
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {
-                "role": "system",
-                "content": (
-                    "You are an expert emotion analysis engine. "
-                    "Always respond with valid JSON only, no prose or markdown."
-                ),
-            },
-            {"role": "user", "content": prompt},
-        ],
-        temperature=0.2,
-        response_format={"type": "json_object"},
-    )
-
-    return json.loads(response.choices[0].message.content)
+    response = model.generate_content(prompt)
+    return json.loads(response.text)
 
 
 if __name__ == "__main__":

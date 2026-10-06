@@ -15,15 +15,23 @@ public interface EmotionAnalysisRepository extends JpaRepository<EmotionAnalysis
             SELECT a.primary_emotion, CAST(DATE(c.created_at) AS VARCHAR), COUNT(*)
             FROM emotion_analyses a
             JOIN communications c ON c.id = a.communication_id
-            WHERE c.created_at >= :from AND c.created_at <= :to
+            WHERE c.user_id = :userId
+              AND c.created_at >= :from AND c.created_at <= :to
             GROUP BY a.primary_emotion, DATE(c.created_at)
             ORDER BY DATE(c.created_at)
             """, nativeQuery = true)
     List<Object[]> countByEmotionAndDate(
+            @Param("userId") UUID userId,
             @Param("from") LocalDateTime from,
             @Param("to") LocalDateTime to
     );
 
-    @Query("SELECT a.primaryEmotion, COUNT(a) FROM EmotionAnalysis a GROUP BY a.primaryEmotion")
-    List<Object[]> countByEmotion();
+    @Query(value = """
+            SELECT a.primary_emotion, COUNT(*)
+            FROM emotion_analyses a
+            JOIN communications c ON c.id = a.communication_id
+            WHERE c.user_id = :userId
+            GROUP BY a.primary_emotion
+            """, nativeQuery = true)
+    List<Object[]> countByEmotion(@Param("userId") UUID userId);
 }

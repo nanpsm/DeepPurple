@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface CommunicationRepository extends JpaRepository<Communication, UUID> {
@@ -17,17 +18,20 @@ public interface CommunicationRepository extends JpaRepository<Communication, UU
     @Query("""
             SELECT c FROM Communication c
             LEFT JOIN c.analysis a
-            WHERE (:source IS NULL OR c.source = :source)
+            WHERE c.userId = :userId
+              AND (:source IS NULL OR c.source = :source)
               AND (:emotion IS NULL OR a.primaryEmotion = :emotion)
               AND (:from IS NULL OR c.createdAt >= :from)
               AND (:to IS NULL OR c.createdAt <= :to)
-            ORDER BY c.createdAt DESC
             """)
-    Page<Communication> findWithFilters(
+    Page<Communication> findByUserIdWithFilters(
+            @Param("userId") UUID userId,
             @Param("source") CommunicationSource source,
             @Param("emotion") Emotion emotion,
             @Param("from") LocalDateTime from,
             @Param("to") LocalDateTime to,
             Pageable pageable
     );
+
+    Optional<Communication> findByIdAndUserId(UUID id, UUID userId);
 }

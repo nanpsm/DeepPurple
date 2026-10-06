@@ -16,8 +16,8 @@ public class TrendService {
     private final EmotionAnalysisRepository emotionAnalysisRepository;
 
     @Transactional(readOnly = true)
-    public List<TrendDTO> getTrends(LocalDateTime from, LocalDateTime to) {
-        List<Object[]> rows = emotionAnalysisRepository.countByEmotionAndDate(from, to);
+    public List<TrendDTO> getTrends(UUID userId, LocalDateTime from, LocalDateTime to) {
+        List<Object[]> rows = emotionAnalysisRepository.countByEmotionAndDate(userId, from, to);
         Map<String, Map<String, Long>> byDate = new TreeMap<>();
         for (Object[] row : rows) {
             String emotion = row[0].toString();
@@ -31,9 +31,9 @@ public class TrendService {
     }
 
     @Transactional(readOnly = true)
-    public Map<String, Long> getSummary() {
+    public Map<String, Long> getSummary(UUID userId) {
         Map<String, Long> summary = new LinkedHashMap<>();
-        emotionAnalysisRepository.countByEmotion()
+        emotionAnalysisRepository.countByEmotion(userId)
                 .forEach(row -> summary.put(row[0].toString(), ((Number) row[1]).longValue()));
         return summary;
     }

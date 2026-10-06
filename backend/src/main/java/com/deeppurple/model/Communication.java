@@ -31,6 +31,9 @@ public class Communication {
 
     private LocalDateTime analyzedAt;
 
+    @Column(name = "user_id")
+    private UUID userId;
+
     @OneToOne(mappedBy = "communication", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private EmotionAnalysis analysis;
 }

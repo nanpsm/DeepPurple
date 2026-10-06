@@ -27,17 +27,23 @@ public class CommunicationService {
 
     private final CommunicationRepository communicationRepository;
     private final EmotionAnalysisRepository emotionAnalysisRepository;
-    private final LambdaInvokerService lambdaInvokerService;
+    private final GeminiService geminiService;
     private final ObjectMapper objectMapper;
 
     @Transactional
-    public AnalysisResponse submit(CommunicationRequest request) {
+    public AnalysisResponse submit(CommunicationRequest request, String userId) {
+        Map<String, Object> result = geminiService.analyzeText(request.getText(), request.getSource().name());
+
+        // Guest users: return analysis without persisting
+        if (userId == null) {
+            return toGuestResponse(result, request.getSource().name());
+        }
+
         Communication comm = new Communication();
         comm.setText(request.getText());
         comm.setSource(request.getSource());
+        comm.setUserId(UUID.fromString(userId));
         comm = communicationRepository.save(comm);
-
-        Map<String, Object> result = lambdaInvokerService.analyzeText(request.getText(), request.getSource().name());
 
         EmotionAnalysis analysis = new EmotionAnalysis();
         analysis.setCommunication(comm);
@@ -62,19 +68,34 @@ public class CommunicationService {
 
     @Transactional(readOnly = true)
     public Page<AnalysisResponse> list(
+            String userId,
             CommunicationSource source, Emotion emotion,
             LocalDateTime from, LocalDateTime to,
             Pageable pageable) {
         return communicationRepository
-                .findWithFilters(source, emotion, from, to, pageable)
+                .findByUserIdWithFilters(UUID.fromString(userId), source, emotion, from, to, pageable)
                 .map(c -> toResponse(c, c.getAnalysis()));
     }
 
     @Transactional(readOnly = true)
-    public AnalysisResponse getById(UUID id) {
-        Communication comm = communicationRepository.findById(id)
+    public AnalysisResponse getById(UUID id, String userId) {
+        Communication comm = communicationRepository
+                .findByIdAndUserId(id, UUID.fromString(userId))
                 .orElseThrow(() -> new RuntimeException("Communication not found: " + id));
         return toResponse(comm, comm.getAnalysis());
+    }
+
+    private AnalysisResponse toGuestResponse(Map<String, Object> result, String source) {
+        AnalysisResponse r = new AnalysisResponse();
+        r.setSource(source);
+        r.setPrimaryEmotion(Emotion.valueOf((String) result.get("primaryEmotion")));
+        r.setSentimentScore(((Number) result.get("sentimentScore")).floatValue());
+        r.setSummary((String) result.get("summary"));
+        try {
+            r.setEmotionScores(objectMapper.convertValue(result.get("emotionScores"), new TypeReference<>() {}));
+            r.setTopics(objectMapper.convertValue(result.get("topics"), new TypeReference<>() {}));
+        } catch (Exception ignored) {}
+        return r;
     }
 
     private AnalysisResponse toResponse(Communication comm, EmotionAnalysis analysis) {
@@ -94,8 +115,7 @@ public class CommunicationService {
                         analysis.getEmotionScoresJson(), new TypeReference<>() {}));
                 r.setTopics(objectMapper.readValue(
                         analysis.getTopicsJson(), new TypeReference<>() {}));
-            } catch (Exception ignored) {
-            }
+            } catch (Exception ignored) {}
         }
         return r;
     }

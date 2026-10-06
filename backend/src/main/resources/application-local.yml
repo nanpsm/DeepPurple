@@ -17,10 +17,6 @@ spring:
       enabled: true
       path: /h2-console
 
-aws:
-  lambda:
-    function-arn: local-mock
-
 logging:
   level:
     com.deeppurple: DEBUG

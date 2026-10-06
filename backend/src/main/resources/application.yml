@@ -20,10 +20,11 @@ spring:
 server:
   port: ${PORT:8080}
 
-aws:
-  region: ${AWS_REGION:us-east-1}
-  lambda:
-    function-arn: ${LAMBDA_FUNCTION_ARN:arn:aws:lambda:us-east-1:000000000000:function:deeppurple-analyze}
+gemini:
+  api-key: ${GEMINI_API_KEY:}
+
+supabase:
+  jwt-secret: ${SUPABASE_JWT_SECRET:}
 
 app:
   cors:

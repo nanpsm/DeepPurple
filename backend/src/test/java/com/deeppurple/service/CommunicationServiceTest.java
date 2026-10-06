@@ -34,7 +34,7 @@ class CommunicationServiceTest {
     private EmotionAnalysisRepository emotionAnalysisRepository;
 
     @Mock
-    private LambdaInvokerService lambdaInvokerService;
+    private GeminiService geminiService;
 
     @Spy
     private ObjectMapper objectMapper = new ObjectMapper();
@@ -51,8 +51,8 @@ class CommunicationServiceTest {
     }
 
     @Test
-    void submit_invokesLambdaAndReturnsAnalysis() {
-        when(lambdaInvokerService.analyzeText(any(), any())).thenReturn(Map.of(
+    void submit_invokesGeminiAndReturnsAnalysis() {
+        when(geminiService.analyzeText(any(), any())).thenReturn(Map.of(
                 "primaryEmotion", "ANGER",
                 "sentimentScore", -0.72,
                 "emotionScores", Map.of("joy", 0.05, "anger", 0.72, "fear", 0.08,
@@ -65,12 +65,12 @@ class CommunicationServiceTest {
         request.setText("I am furious about my bill, this is completely unacceptable!");
         request.setSource(CommunicationSource.SUPPORT_TICKET);
 
-        AnalysisResponse response = communicationService.submit(request);
+        AnalysisResponse response = communicationService.submit(request, "00000000-0000-0000-0000-000000000001");
 
         assertThat(response.getPrimaryEmotion()).isEqualTo(Emotion.ANGER);
         assertThat(response.getSentimentScore()).isEqualTo(-0.72f);
         assertThat(response.getTopics()).contains("billing");
-        verify(lambdaInvokerService).analyzeText(request.getText(), "SUPPORT_TICKET");
+        verify(geminiService).analyzeText(request.getText(), "SUPPORT_TICKET");
         verify(communicationRepository, times(2)).save(any());
     }
 }
