@@ -2,6 +2,8 @@ import type { ReactNode } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import Sidebar from './components/Sidebar';
+import BottomDock from './components/BottomDock';
 import Landing from './pages/Landing';
 import Dashboard from './pages/Dashboard';
 import CommunicationsList from './pages/CommunicationsList';
@@ -101,16 +103,50 @@ function AppShell({ children }: { children: ReactNode }) {
   );
 }
 
+// Authenticated shell: sidebar on desktop, TopBar + BottomDock on mobile
+function AuthShell({ children }: { children: ReactNode }) {
+  return (
+    <div className="min-h-screen" style={{ background: '#f8f5ff' }}>
+      {/* Sidebar — desktop only */}
+      <div className="hidden md:block">
+        <Sidebar />
+      </div>
+      {/* TopBar — mobile only */}
+      <div className="md:hidden">
+        <TopBar />
+      </div>
+      {/* Content area */}
+      <main
+        className="md:ml-[220px] px-6 md:px-10 py-7 pb-28 md:pb-10 max-w-none"
+      >
+        <div className="max-w-[960px]">
+          {children}
+        </div>
+      </main>
+      {/* BottomDock — mobile only */}
+      <div className="md:hidden">
+        <BottomDock />
+      </div>
+    </div>
+  );
+}
+
+// For Submit: show AuthShell when logged in, AppShell when guest
+function SmartShell({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
+  return user ? <AuthShell>{children}</AuthShell> : <AppShell>{children}</AppShell>;
+}
+
 function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<Landing />} />
       <Route path="/signin" element={<SignIn />} />
       <Route path="/signup" element={<SignUp />} />
-      <Route path="/submit" element={<AppShell><Submit /></AppShell>} />
-      <Route path="/dashboard" element={<AppShell><ProtectedRoute><Dashboard /></ProtectedRoute></AppShell>} />
-      <Route path="/history" element={<AppShell><ProtectedRoute><CommunicationsList /></ProtectedRoute></AppShell>} />
-      <Route path="/history/:id" element={<AppShell><ProtectedRoute><CommunicationDetail /></ProtectedRoute></AppShell>} />
+      <Route path="/submit" element={<SmartShell><Submit /></SmartShell>} />
+      <Route path="/dashboard" element={<AuthShell><ProtectedRoute><Dashboard /></ProtectedRoute></AuthShell>} />
+      <Route path="/history" element={<AuthShell><ProtectedRoute><CommunicationsList /></ProtectedRoute></AuthShell>} />
+      <Route path="/history/:id" element={<AuthShell><ProtectedRoute><CommunicationDetail /></ProtectedRoute></AuthShell>} />
       <Route path="/communications" element={<Navigate to="/history" replace />} />
       <Route path="/communications/:id" element={<Navigate to="/history" replace />} />
     </Routes>

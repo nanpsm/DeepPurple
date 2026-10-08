@@ -8,6 +8,7 @@ import com.deeppurple.service.CommunicationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import java.util.List;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -31,7 +32,19 @@ public class CommunicationController {
     public AnalysisResponse submit(
             @Valid @RequestBody CommunicationRequest request,
             @AuthenticationPrincipal String userId) {
-        return communicationService.submit(request, userId);
+        return communicationService.submit(request, isAnonymous(userId) ? null : userId);
+    }
+
+    private static boolean isAnonymous(String userId) {
+        return userId == null || userId.equals("anonymousUser");
+    }
+
+    @PostMapping("/bulk")
+    @ResponseStatus(HttpStatus.CREATED)
+    public List<AnalysisResponse> submitBulk(
+            @RequestBody List<CommunicationRequest> requests,
+            @AuthenticationPrincipal String userId) {
+        return communicationService.submitBulk(requests, isAnonymous(userId) ? null : userId);
     }
 
     @GetMapping

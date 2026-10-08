@@ -37,4 +37,23 @@ public class TrendService {
                 .forEach(row -> summary.put(row[0].toString(), ((Number) row[1]).longValue()));
         return summary;
     }
+
+    @Transactional(readOnly = true)
+    public double getAvgSentiment(UUID userId) {
+        Double avg = emotionAnalysisRepository.avgSentimentScore(userId);
+        return avg != null ? avg : 0.0;
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Map<String, Long>> getTopicEmotions(UUID userId) {
+        List<Object[]> rows = emotionAnalysisRepository.countByTopicAndEmotion(userId);
+        Map<String, Map<String, Long>> result = new LinkedHashMap<>();
+        for (Object[] row : rows) {
+            String topic = row[0].toString();
+            String emotion = row[1].toString();
+            long count = ((Number) row[2]).longValue();
+            result.computeIfAbsent(topic, k -> new LinkedHashMap<>()).put(emotion, count);
+        }
+        return result;
+    }
 }

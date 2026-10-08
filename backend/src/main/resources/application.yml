@@ -19,9 +19,14 @@ spring:
 
 server:
   port: ${PORT:8080}
+  error:
+    include-message: always
+    include-exception: true
+    include-binding-errors: always
 
 gemini:
   api-key: ${GEMINI_API_KEY:}
+  model: ${GEMINI_MODEL:gemini-3.5-flash}
 
 supabase:
   jwt-secret: ${SUPABASE_JWT_SECRET:}

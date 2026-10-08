@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useCommunications } from '../hooks/useCommunications';
 import type { CommunicationSource, Emotion } from '../types';
-import BottomDock from '../components/BottomDock';
 
 const EMOTION_COLORS: Record<string, string> = {
   JOY: '#f59e0b', ANGER: '#ef4444', FEAR: '#8b5cf6',
@@ -202,7 +201,6 @@ export default function CommunicationsList() {
         </div>
       )}
 
-      <BottomDock />
     </div>
   );
 }

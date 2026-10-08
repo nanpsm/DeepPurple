@@ -6,6 +6,7 @@ import com.deeppurple.model.Emotion;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.List;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -34,4 +35,17 @@ public interface CommunicationRepository extends JpaRepository<Communication, UU
     );
 
     Optional<Communication> findByIdAndUserId(UUID id, UUID userId);
+
+    @Query("""
+            SELECT c FROM Communication c
+            JOIN c.analysis a
+            WHERE c.userId = :userId
+              AND a.sentimentScore < :threshold
+            ORDER BY c.createdAt DESC
+            """)
+    List<Communication> findAlerts(
+            @Param("userId") UUID userId,
+            @Param("threshold") float threshold,
+            Pageable pageable
+    );
 }

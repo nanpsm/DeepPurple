@@ -1,5 +1,7 @@
 export type CommunicationSource = 'SUPPORT_TICKET' | 'PRODUCT_REVIEW' | 'SOCIAL_MEDIA';
 
+export type Priority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+
 export type Emotion = 'JOY' | 'ANGER' | 'FEAR' | 'SADNESS' | 'SURPRISE' | 'DISGUST' | 'TRUST';
 
 export interface EmotionScores {
@@ -23,6 +25,8 @@ export interface Communication {
   emotionScores: EmotionScores | null;
   topics: string[] | null;
   summary: string | null;
+  priority: Priority | null;
+  alert: boolean;
 }
 
 export interface PageResponse<T> {
@@ -37,3 +41,5 @@ export interface TrendEntry {
   date: string;
   emotionCounts: Partial<Record<Emotion, number>>;
 }
+
+export type TopicEmotionData = Record<string, Record<string, number>>;

@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientResponseException;
 
 import java.util.List;
 import java.util.Map;
@@ -20,8 +21,11 @@ public class GeminiService {
     @Value("${gemini.api-key}")
     private String apiKey;
 
-    private static final String GEMINI_URL =
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent";
+    @Value("${gemini.model:gemini-2.0-flash}")
+    private String model;
+
+    private static final String GEMINI_BASE =
+            "https://generativelanguage.googleapis.com/v1beta/models/";
 
     @SuppressWarnings("unchecked")
     public Map<String, Object> analyzeText(String text, String source) {
@@ -47,24 +51,39 @@ public class GeminiService {
                 )
         );
 
-        try {
-            RestClient client = RestClient.create();
-            String response = client.post()
-                    .uri(GEMINI_URL + "?key=" + apiKey)
-                    .header("Content-Type", "application/json")
-                    .body(objectMapper.writeValueAsString(body))
-                    .retrieve()
-                    .body(String.class);
+        String url = GEMINI_BASE + model + ":generateContent?key=" + apiKey;
+        int maxAttempts = 5;
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                RestClient client = RestClient.create();
+                String response = client.post()
+                        .uri(url)
+                        .header("Content-Type", "application/json")
+                        .body(objectMapper.writeValueAsString(body))
+                        .retrieve()
+                        .body(String.class);
 
-            Map<String, Object> parsed = objectMapper.readValue(response, Map.class);
-            List<Map<String, Object>> candidates = (List<Map<String, Object>>) parsed.get("candidates");
-            Map<String, Object> content = (Map<String, Object>) candidates.get(0).get("content");
-            List<Map<String, Object>> parts = (List<Map<String, Object>>) content.get("parts");
-            String json = (String) parts.get(0).get("text");
-            return objectMapper.readValue(json, Map.class);
-        } catch (Exception e) {
-            log.error("Gemini analysis failed for source={}", source, e);
-            throw new RuntimeException("Emotion analysis failed", e);
+                Map<String, Object> parsed = objectMapper.readValue(response, Map.class);
+                List<Map<String, Object>> candidates = (List<Map<String, Object>>) parsed.get("candidates");
+                Map<String, Object> content = (Map<String, Object>) candidates.get(0).get("content");
+                List<Map<String, Object>> parts = (List<Map<String, Object>>) content.get("parts");
+                String json = (String) parts.get(0).get("text");
+                return objectMapper.readValue(json, Map.class);
+            } catch (RestClientResponseException e) {
+                boolean isRetryable = e.getStatusCode().value() == 503 || e.getStatusCode().value() == 429;
+                log.error("Gemini HTTP {} for model={} attempt={}: {}", e.getStatusCode(), model, attempt, e.getResponseBodyAsString());
+                if (!isRetryable || attempt == maxAttempts) {
+                    throw new RuntimeException("Gemini API error: " + e.getStatusCode(), e);
+                }
+                long backoffMs = 5000L * (1L << (attempt - 1)); // 5s, 10s, 20s, 40s
+                log.warn("Gemini 503/429 attempt={}, retrying in {}ms", attempt, backoffMs);
+                try { Thread.sleep(backoffMs); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+            } catch (Exception e) {
+                log.error("Gemini analysis failed for model={} source={} attempt={}", model, source, attempt, e);
+                if (attempt == maxAttempts) throw new RuntimeException("Emotion analysis failed", e);
+                try { Thread.sleep(5000L); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+            }
         }
+        throw new RuntimeException("Gemini analysis failed after " + maxAttempts + " attempts");
     }
 }

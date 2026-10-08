@@ -1,6 +1,7 @@
 package com.deeppurple.dto;
 
 import com.deeppurple.model.Emotion;
+import com.deeppurple.model.Priority;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -20,4 +21,6 @@ public class AnalysisResponse {
     private Map<String, Float> emotionScores;
     private List<String> topics;
     private String summary;
+    private Priority priority;
+    private boolean alert;
 }

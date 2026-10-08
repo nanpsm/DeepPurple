@@ -34,4 +34,26 @@ public interface EmotionAnalysisRepository extends JpaRepository<EmotionAnalysis
             GROUP BY a.primary_emotion
             """, nativeQuery = true)
     List<Object[]> countByEmotion(@Param("userId") UUID userId);
+
+    @Query(value = """
+            SELECT AVG(a.sentiment_score)
+            FROM emotion_analyses a
+            JOIN communications c ON c.id = a.communication_id
+            WHERE c.user_id = :userId
+            """, nativeQuery = true)
+    Double avgSentimentScore(@Param("userId") UUID userId);
+
+    @Query(value = """
+            SELECT t.topic, a.primary_emotion, COUNT(*) AS cnt
+            FROM emotion_analyses a
+            JOIN communications c ON c.id = a.communication_id
+            CROSS JOIN jsonb_array_elements_text(a.topics_json::jsonb) AS t(topic)
+            WHERE c.user_id = :userId
+              AND a.topics_json IS NOT NULL
+              AND a.topics_json NOT IN ('[]', '', 'null')
+            GROUP BY t.topic, a.primary_emotion
+            ORDER BY cnt DESC
+            LIMIT 100
+            """, nativeQuery = true)
+    List<Object[]> countByTopicAndEmotion(@Param("userId") UUID userId);
 }

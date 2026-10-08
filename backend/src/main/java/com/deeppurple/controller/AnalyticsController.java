@@ -1,6 +1,8 @@
 package com.deeppurple.controller;
 
+import com.deeppurple.dto.AnalysisResponse;
 import com.deeppurple.dto.TrendDTO;
+import com.deeppurple.service.CommunicationService;
 import com.deeppurple.service.TrendService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -19,6 +21,7 @@ import java.util.UUID;
 public class AnalyticsController {
 
     private final TrendService trendService;
+    private final CommunicationService communicationService;
 
     @GetMapping("/trends")
     public List<TrendDTO> trends(
@@ -33,5 +36,34 @@ public class AnalyticsController {
     @GetMapping("/summary")
     public Map<String, Long> summary(@AuthenticationPrincipal String userId) {
         return trendService.getSummary(UUID.fromString(userId));
+    }
+
+    @GetMapping("/avg-sentiment")
+    public double avgSentiment(@AuthenticationPrincipal String userId) {
+        return trendService.getAvgSentiment(UUID.fromString(userId));
+    }
+
+    @GetMapping("/topic-emotions")
+    public Map<String, Map<String, Long>> topicEmotions(@AuthenticationPrincipal String userId) {
+        return trendService.getTopicEmotions(UUID.fromString(userId));
+    }
+
+    @GetMapping("/alerts")
+    public List<AnalysisResponse> alerts(@AuthenticationPrincipal String userId) {
+        return communicationService.getAlerts(userId);
+    }
+
+    @GetMapping("/compare")
+    public Map<String, List<TrendDTO>> compare(
+            @AuthenticationPrincipal String userId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from1,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to1,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from2,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to2) {
+        UUID uid = UUID.fromString(userId);
+        return Map.of(
+                "periodA", trendService.getTrends(uid, from1, to1),
+                "periodB", trendService.getTrends(uid, from2, to2)
+        );
     }
 }
